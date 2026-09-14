@@ -1,0 +1,6 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+app/google-services.json
+functions/node_modules/
