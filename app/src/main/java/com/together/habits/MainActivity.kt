@@ -118,7 +118,7 @@ class MainActivity : ComponentActivity() {
                         Icon(Icons.Default.Favorite, null, tint = Lavender)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) { Text("You & ${partner?.name ?: "your partner"}", fontWeight = FontWeight.Bold); Text("A shared place to show up") }
-                        Text("$myDone/${state.habits.count}", fontWeight = FontWeight.Bold, color = Lavender)
+                        Text("$myDone/${state.habits.count()}", fontWeight = FontWeight.Bold, color = Lavender)
                     }
                 }
             }

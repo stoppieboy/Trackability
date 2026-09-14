@@ -72,7 +72,7 @@ class TogetherRepository {
 
     suspend fun joinWithCode(code: String): Result<Unit> = runCatching {
         functions.getHttpsCallable("joinWithCode")
-            .call(mapOf("code" to code.trim().uppercase(), "joinerId" to joinerId)).await()
+            .call(mapOf("code" to code.trim().uppercase())).await()
     }
 
     suspend fun addHabit(partnershipId: String, owner: Person, title: String, emoji: String) {
