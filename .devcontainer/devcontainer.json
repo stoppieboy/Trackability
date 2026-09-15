@@ -15,6 +15,10 @@
     "ANDROID_SDK_ROOT": "/opt/android-sdk"
   },
 
+  "remoteEnv": {
+    "PATH": "/opt/android-sdk/platform-tools:/opt/android-sdk/cmdline-tools/latest/bin:${containerEnv:PATH}"
+  },
+
   "customizations": {
     "vscode": {
       "extensions": [
