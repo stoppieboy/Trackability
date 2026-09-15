@@ -1,0 +1,28 @@
+{
+  "name": "Android Development",
+
+  "image": "mcr.microsoft.com/devcontainers/java:1-17-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "installGradle": true
+    }
+  },
+
+  "containerEnv": {
+    "ANDROID_HOME": "/opt/android-sdk",
+    "ANDROID_SDK_ROOT": "/opt/android-sdk"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "fwcd.kotlin",
+        "vscjava.vscode-gradle"
+      ]
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup-android.sh"
+}
