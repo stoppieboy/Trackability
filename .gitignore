@@ -1,6 +1,28 @@
+# Android / Gradle
 .gradle/
-.idea/
-local.properties
 **/build/
+local.properties
+*.iml
+.idea/
+.cxx/
+.externalNativeBuild/
+captures/
+
+# Firebase configuration and local emulator output
 app/google-services.json
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+functions/.env
+functions/.env.*
+
+# Cloud Functions dependencies
 functions/node_modules/
+
+# Signing material
+*.jks
+*.keystore
+
+# Operating-system files
+.DS_Store
+Thumbs.db

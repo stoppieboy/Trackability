@@ -22,4 +22,6 @@ Together is a small Android app for two people who want to keep each other accou
 
 This project includes a GitHub Actions workflow at `.github/workflows/android.yml`. Add the full contents of your Firebase `google-services.json` as a repository secret named `GOOGLE_SERVICES_JSON`, then push to GitHub. Each push builds a debug APK; download it from the workflow run’s **Artifacts** section.
 
+To publish a permanent phone-downloadable release, create and push a version tag such as `v0.1.0`. The workflow will create a GitHub Release and attach `Trackability-v0.1.0.apk` automatically. In your repository settings, ensure **Actions → General → Workflow permissions** allows workflows to read and write repository contents.
+
 Pairing is handled by the included callable Cloud Function, so it atomically validates and consumes an invite before connecting the two accounts. Before publishing an app, add App Check, a deletion/unpair flow, and a privacy policy.
