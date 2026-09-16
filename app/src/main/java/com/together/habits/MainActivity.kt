@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +29,20 @@ private val Lavender = Color(0xFF6750A4)
 private val Lilac = Color(0xFFF0E7FF)
 private val Ink = Color(0xFF201A30)
 
+private val lightColors = lightColorScheme(
+    primary = Lavender,
+    secondary = Color(0xFF7D5260),
+    surface = Color(0xFFFFFBFE)
+)
+private val darkColors = darkColorScheme(
+    primary = Lavender,
+    secondary = Color(0xFFD0A8B5),
+    surface = Color(0xFF141218),
+    background = Color(0xFF141218)
+)
+
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,8 +51,19 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun TogetherTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = lightColorScheme(primary = Lavender, secondary = Color(0xFF7D5260), surface = Color(0xFFFFFBFE)), content = content)
+@Composable private fun TogetherTheme(themeMode: ThemeMode = ThemeMode.SYSTEM, content: @Composable () -> Unit) {
+
+    val darkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+
+    var colorScheme = if (darkTheme) darkColors else lightColors
+    MaterialTheme(
+        colorScheme = if (darkTheme) darkColors else lightColors,
+        content = content
+    )
 }
 
 @Composable private fun TogetherApp(model: HabitsViewModel = viewModel()) {
@@ -166,3 +192,4 @@ class MainActivity : ComponentActivity() {
         Column { OutlinedTextField(title, { title = it }, label = { Text("Habit") }, singleLine = true); Spacer(Modifier.height(8.dp)); OutlinedTextField(emoji, { emoji = it.take(2) }, label = { Text("Icon") }, singleLine = true) }
     }, dismissButton = { TextButton(onDismiss) { Text("Cancel") } }, confirmButton = { TextButton({ onAdd(title, emoji) }, enabled = title.isNotBlank()) { Text("Add") } })
 }
+
