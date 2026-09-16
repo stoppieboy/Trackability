@@ -31,6 +31,14 @@ class HabitsViewModel : ViewModel() {
         runCatching { repository.saveName(uid, name) }.onFailure { fail("Couldn’t save your name.") }
     }
 
+    fun signInWithGoogle(idToken: String, displayName: String?) = viewModelScope.launch {
+        runCatching {
+            val signedInId = repository.linkGoogleAccount(idToken)
+            if (!displayName.isNullOrBlank()) repository.saveName(signedInId, displayName)
+        }
+            .onFailure { fail("Couldn’t connect your Google account.") }
+    }
+
     fun createInvite() = viewModelScope.launch {
         runCatching { repository.createInvite(uid) }
             .onSuccess { state.value = state.value.copy(inviteCode = it, error = null) }
@@ -41,6 +49,16 @@ class HabitsViewModel : ViewModel() {
         if (code.trim().length != 6) return@launch fail("Enter the 6-character pairing code.")
         repository.joinWithCode(code).onSuccess { state.value = state.value.copy(error = null) }
             .onFailure { fail(it.message ?: "Couldn’t pair your accounts.") }
+    }
+
+    fun leavePartnership() = viewModelScope.launch {
+        repository.leavePartnership()
+            .onSuccess {
+                observedPartnership = ""
+                partnershipListener?.remove(); habitsListener?.remove(); completionsListener?.remove()
+                state.value = state.value.copy(partnership = null, partner = null, habits = emptyList(), completions = emptySet(), inviteCode = null, error = null)
+            }
+            .onFailure { fail("Couldn’t leave this partnership.") }
     }
 
     fun addHabit(title: String, emoji: String) = viewModelScope.launch {
@@ -63,10 +81,16 @@ class HabitsViewModel : ViewModel() {
 
     fun clearError() { state.value = state.value.copy(error = null) }
 
+    fun showError(message: String) { fail(message) }
+
     private fun watchMe() {
         meListener = repository.observeMe(uid) { person, partnershipId ->
             state.value = state.value.copy(loading = false, me = person)
-            if (partnershipId != null && partnershipId != observedPartnership) watchPartnership(partnershipId)
+            if (partnershipId == null) {
+                partnershipListener?.remove(); habitsListener?.remove(); completionsListener?.remove()
+                observedPartnership = ""
+                state.value = state.value.copy(partnership = null, partner = null, habits = emptyList(), completions = emptySet())
+            } else if (partnershipId != observedPartnership) watchPartnership(partnershipId)
         }
     }
 

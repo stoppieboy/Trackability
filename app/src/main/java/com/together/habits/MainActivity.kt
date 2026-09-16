@@ -1,9 +1,12 @@
 package com.together.habits
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,10 +15,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,6 +31,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
 private val Lavender = Color(0xFF6750A4)
 private val Lilac = Color(0xFFF0E7FF)
@@ -73,7 +83,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { TogetherTheme { TogetherApp() } }
+        setContent {
+            var themeMode by rememberSaveable { mutableStateOf(ThemeMode.SYSTEM) }
+            TogetherTheme(themeMode) {
+                TogetherApp(themeMode, onThemeModeChange = { themeMode = it })
+            }
+        }
     }
 }
 
@@ -92,14 +107,50 @@ class MainActivity : ComponentActivity() {
     )
 }
 
-@Composable private fun TogetherApp(model: HabitsViewModel = viewModel()) {
+@Composable private fun TogetherApp(themeMode: ThemeMode, onThemeModeChange: (ThemeMode) -> Unit, model: HabitsViewModel = viewModel()) {
     val state by model.state
+    val context = LocalContext.current
+    val googleSignInClient = remember(context) {
+        GoogleSignIn.getClient(
+            context,
+            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(context.getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build()
+        )
+    }
+    val googleSignInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
+        runCatching {
+            GoogleSignIn.getSignedInAccountFromIntent(result.data).getResult(ApiException::class.java)
+        }.onSuccess { account ->
+            val idToken = account.idToken
+            if (idToken == null) model.showError("Google did not return an ID token.")
+            else model.signInWithGoogle(idToken, account.displayName)
+        }
+            .onFailure { model.showError("Couldn’t complete Google sign-in.") }
+    }
+    val isDark = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
     Surface(Modifier.fillMaxSize()) {
-        when {
-            state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            state.me == null -> WelcomeScreen(onContinue = model::saveName)
-            state.partnership == null -> PairingScreen(state, model::createInvite, model::join)
-            else -> Dashboard(state, model::addHabit, model::toggle)
+        Box(Modifier.fillMaxSize()) {
+            when {
+                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                state.me == null -> WelcomeScreen(
+                    onContinue = model::saveName,
+                    onGoogleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) }
+                )
+                state.partnership == null -> PairingScreen(state, model::createInvite, model::join)
+                else -> Dashboard(state, model::addHabit, model::toggle, model::leavePartnership)
+            }
+            ThemeToggleButton(
+                isDark = isDark,
+                onToggle = { onThemeModeChange(if (isDark) ThemeMode.LIGHT else ThemeMode.DARK) },
+                modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 12.dp)
+            )
         }
     }
     state.error?.let { message ->
@@ -107,7 +158,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun WelcomeScreen(onContinue: (String) -> Unit) {
+@Composable private fun ThemeToggleButton(isDark: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    IconButton(onClick = onToggle, modifier = modifier) {
+        Icon(
+            imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+            contentDescription = if (isDark) "Switch to light theme" else "Switch to dark theme"
+        )
+    }
+}
+
+@Composable private fun WelcomeScreen(onContinue: (String) -> Unit, onGoogleSignIn: () -> Unit) {
     var name by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
         Icon(Icons.Default.Favorite, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(52.dp))
@@ -119,6 +179,8 @@ class MainActivity : ComponentActivity() {
         OutlinedTextField(name, { name = it }, label = { Text("What should your partner call you?") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(16.dp))
         Button({ onContinue(name) }, Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2) { Text("Get started") }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onGoogleSignIn, Modifier.fillMaxWidth().height(52.dp)) { Text("Continue with Google") }
     }
 }
 
@@ -152,14 +214,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun Dashboard(state: AppState, onAddHabit: (String, String) -> Unit, onToggle: (Habit) -> Unit) {
+@Composable private fun Dashboard(state: AppState, onAddHabit: (String, String) -> Unit, onToggle: (Habit) -> Unit, onLeavePartnership: () -> Unit) {
     var addHabit by remember { mutableStateOf(false) }
+    var showLeaveConfirmation by remember { mutableStateOf(false) }
     val me = state.me!!
     val partner = state.partner
     val myDone = state.habits.count { "${it.id}|${me.id}|${today()}" in state.completions }
     val partnerDone = partner?.let { person -> state.habits.count { "${it.id}|${person.id}|${today()}" in state.completions } } ?: 0
     Scaffold(floatingActionButton = { FloatingActionButton({ addHabit = true }, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) { Icon(Icons.Default.Add, "Add habit") } }) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp), contentPadding = PaddingValues(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp).padding(top = 56.dp), contentPadding = PaddingValues(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item {
                 Text("Good morning, ${me.name}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Text("${today().replace("-", " · ")}", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -182,9 +245,27 @@ class MainActivity : ComponentActivity() {
             if (partner != null) item {
                 Text("${partner.name} has checked in on $partnerDone habit${if (partnerDone == 1) "" else "s"} today.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 76.dp))
             }
+            item {
+                TextButton(onClick = { showLeaveConfirmation = true }, modifier = Modifier.padding(bottom = 72.dp)) {
+                    Text("Leave partnership", color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
     }
     if (addHabit) AddHabitDialog(onDismiss = { addHabit = false }, onAdd = { title, emoji -> onAddHabit(title, emoji); addHabit = false })
+    if (showLeaveConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showLeaveConfirmation = false },
+            title = { Text("Leave partnership?") },
+            text = { Text("You will stop seeing shared habits and check-ins. Your existing history will remain available if you pair again later.") },
+            dismissButton = { TextButton(onClick = { showLeaveConfirmation = false }) { Text("Cancel") } },
+            confirmButton = {
+                TextButton(onClick = { showLeaveConfirmation = false; onLeavePartnership() }) {
+                    Text("Leave", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        )
+    }
 }
 
 @Composable private fun HabitCard(habit: Habit, me: Person, partner: Person?, completions: Set<String>, onToggle: (Habit) -> Unit) {

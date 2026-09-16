@@ -12,11 +12,12 @@ Together is a small Android app for two people who want to keep each other accou
 ## Run it
 
 1. Create a Firebase project and add an Android app whose package name is `com.together.habits`.
-2. Enable **Anonymous** in Firebase Authentication.
-3. Create a Cloud Firestore database, then paste the contents of `firestore.rules` into its Rules tab and publish.
-4. Download Firebase’s `google-services.json` and put it at `app/google-services.json` (it is deliberately ignored by Git).
-5. Install the Firebase CLI, run `firebase login`, then `firebase use --add` to select your Firebase project. From this folder run `firebase deploy --only firestore:rules,functions`. Cloud Functions requires billing to be enabled on the Firebase project.
-6. In Android Studio, open this folder, allow Gradle to sync, then run on two devices or emulators.
+2. Enable **Anonymous** and **Google** in Firebase Authentication. For Google, choose a support email when prompted.
+3. In Firebase Project settings, add the SHA-1 and SHA-256 fingerprints for every signing key you use. The debug key is needed for local builds; the release key is needed before publishing.
+4. Create a Cloud Firestore database, then paste the contents of `firestore.rules` into its Rules tab and publish.
+5. Download Firebase’s `google-services.json` and put it at `app/google-services.json` (it is deliberately ignored by Git).
+6. Install the Firebase CLI, run `firebase login`, then `firebase use --add` to select your Firebase project. From this folder run `firebase deploy --only firestore:rules,functions`. Cloud Functions requires billing to be enabled on the Firebase project.
+7. In Android Studio, open this folder, allow Gradle to sync, then run on two devices or emulators.
 
 ## Cloud builds
 

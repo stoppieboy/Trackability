@@ -36,3 +36,33 @@ exports.joinWithCode = onCall({ region: "us-central1" }, async (request) => {
   });
   return { paired: true };
 });
+
+/** Removes the caller from their partnership without deleting shared history. */
+exports.leavePartnership = onCall({ region: "us-central1" }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Sign in before leaving a partnership.");
+  const userId = request.auth.uid;
+  const userRef = db.collection("users").doc(userId);
+
+  await db.runTransaction(async (transaction) => {
+    const user = await transaction.get(userRef);
+    const partnershipId = user.get("partnershipId");
+    if (!partnershipId) return;
+
+    const partnershipRef = db.collection("partnerships").doc(partnershipId);
+    const partnership = await transaction.get(partnershipRef);
+    const memberIds = partnership.exists ? partnership.get("memberIds") || [] : [];
+
+    transaction.update(userRef, {
+      partnershipId: FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    if (partnership.exists) {
+      transaction.update(partnershipRef, {
+        memberIds: memberIds.filter((memberId) => memberId !== userId),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+  });
+
+  return { left: true };
+});

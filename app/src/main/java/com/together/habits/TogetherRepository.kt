@@ -2,6 +2,7 @@ package com.together.habits
 
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -19,6 +20,16 @@ class TogetherRepository {
 
     suspend fun ensureSignedIn(): String {
         return auth.currentUser?.uid ?: auth.signInAnonymously().await().user!!.uid
+    }
+
+    suspend fun linkGoogleAccount(idToken: String): String {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        val currentUser = auth.currentUser
+        return if (currentUser?.isAnonymous == true) {
+            currentUser.linkWithCredential(credential).await().user!!.uid
+        } else {
+            auth.signInWithCredential(credential).await().user!!.uid
+        }
     }
 
     fun observeMe(uid: String, onChange: (Person?, String?) -> Unit): ListenerRegistration =
@@ -73,6 +84,10 @@ class TogetherRepository {
     suspend fun joinWithCode(code: String): Result<Unit> = runCatching {
         functions.getHttpsCallable("joinWithCode")
             .call(mapOf("code" to code.trim().uppercase())).await()
+    }
+
+    suspend fun leavePartnership(): Result<Unit> = runCatching {
+        functions.getHttpsCallable("leavePartnership").call().await()
     }
 
     suspend fun addHabit(partnershipId: String, owner: Person, title: String, emoji: String) {
