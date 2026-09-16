@@ -37,8 +37,16 @@ private val lightColors = lightColorScheme(
 private val darkColors = darkColorScheme(
     primary = Lavender,
     secondary = Color(0xFFD0A8B5),
-    surface = Color(0xFF141218),
-    background = Color(0xFF141218)
+    surface = Color(0xFF211E24),
+    background = Color(0xFF151318),
+
+    onPrimary = Color(0xFF362F45),
+    onSecondary = Color(0xFF392A30),
+    onSurface = Color(0xFFE9E1E9),
+    onBackground = Color(0xFFE9E1E9),
+
+    surfaceVariant = Color(0xFF4A454D),
+    onSurfaceVariant = Color(0xFFCEC6CF)
 )
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
