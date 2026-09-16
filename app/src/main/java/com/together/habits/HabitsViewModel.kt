@@ -2,6 +2,7 @@ package com.together.habits
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -34,9 +35,15 @@ class HabitsViewModel : ViewModel() {
     fun signInWithGoogle(idToken: String, displayName: String?) = viewModelScope.launch {
         runCatching {
             val signedInId = repository.linkGoogleAccount(idToken)
+            uid = signedInId
+            meListener?.remove()
+            meListener = null
+            stopPartnershipListeners()
+            state.value = state.value.copy(loading = true, me = null, partnership = null, partner = null, habits = emptyList(), completions = emptySet())
             if (!displayName.isNullOrBlank()) repository.saveName(signedInId, displayName)
+            watchMe()
         }
-            .onFailure { fail("Couldn’t connect your Google account.") }
+            .onFailure { fail(googleAuthError(it)) }
     }
 
     fun createInvite() = viewModelScope.launch {
@@ -83,15 +90,34 @@ class HabitsViewModel : ViewModel() {
 
     fun showError(message: String) { fail(message) }
 
+    private fun googleAuthError(error: Throwable): String = when ((error as? FirebaseAuthException)?.errorCode) {
+        "ERROR_CREDENTIAL_ALREADY_IN_USE", "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" ->
+            "That Google account is already connected to another Together account. Use the Google account you originally connected."
+        "ERROR_OPERATION_NOT_ALLOWED" ->
+            "Google sign-in is not enabled in Firebase Authentication yet."
+        "ERROR_INVALID_CREDENTIAL" ->
+            "Google sign-in returned an invalid credential. Check that the app uses the latest Firebase configuration."
+        "ERROR_NETWORK_REQUEST_FAILED" ->
+            "Google sign-in needs an internet connection."
+        else -> error.message?.takeIf { it.isNotBlank() } ?: "Couldn’t connect your Google account."
+    }
+
     private fun watchMe() {
         meListener = repository.observeMe(uid) { person, partnershipId ->
             state.value = state.value.copy(loading = false, me = person)
             if (partnershipId == null) {
-                partnershipListener?.remove(); habitsListener?.remove(); completionsListener?.remove()
-                observedPartnership = ""
+                stopPartnershipListeners()
                 state.value = state.value.copy(partnership = null, partner = null, habits = emptyList(), completions = emptySet())
             } else if (partnershipId != observedPartnership) watchPartnership(partnershipId)
         }
+    }
+
+    private fun stopPartnershipListeners() {
+        partnershipListener?.remove(); habitsListener?.remove(); completionsListener?.remove()
+        partnershipListener = null
+        habitsListener = null
+        completionsListener = null
+        observedPartnership = ""
     }
 
     private fun watchPartnership(id: String) {

@@ -2,6 +2,7 @@ package com.together.habits
 
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -26,7 +27,11 @@ class TogetherRepository {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         val currentUser = auth.currentUser
         return if (currentUser?.isAnonymous == true) {
-            currentUser.linkWithCredential(credential).await().user!!.uid
+            try {
+                currentUser.linkWithCredential(credential).await().user!!.uid
+            } catch (error: FirebaseAuthUserCollisionException) {
+                auth.signInWithCredential(credential).await().user!!.uid
+            }
         } else {
             auth.signInWithCredential(credential).await().user!!.uid
         }

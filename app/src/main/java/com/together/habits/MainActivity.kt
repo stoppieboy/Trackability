@@ -128,7 +128,17 @@ class MainActivity : ComponentActivity() {
             if (idToken == null) model.showError("Google did not return an ID token.")
             else model.signInWithGoogle(idToken, account.displayName)
         }
-            .onFailure { model.showError("Couldn’t complete Google sign-in.") }
+            .onFailure { error ->
+                val statusCode = (error as? ApiException)?.statusCode
+                model.showError(
+                    when (statusCode) {
+                        10 -> "Google sign-in is not configured for this app. Check the Firebase OAuth certificate and client configuration."
+                        7 -> "Google sign-in needs an internet connection."
+                        12501 -> "Google sign-in was cancelled."
+                        else -> error.message ?: "Couldn’t complete Google sign-in."
+                    }
+                )
+            }
     }
     val isDark = when (themeMode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
