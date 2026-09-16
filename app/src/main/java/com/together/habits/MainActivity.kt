@@ -31,22 +31,40 @@ private val Ink = Color(0xFF201A30)
 
 private val lightColors = lightColorScheme(
     primary = Lavender,
+    onPrimary = Color.White,
+    primaryContainer = Lilac,
+    onPrimaryContainer = Ink,
     secondary = Color(0xFF7D5260),
-    surface = Color(0xFFFFFBFE)
+    surface = Color(0xFFFFFBFE),
+    surfaceVariant = Color(0xFFF1EDF4),
+    onSurfaceVariant = Color(0xFF625B71)
 )
 private val darkColors = darkColorScheme(
-    primary = Lavender,
-    secondary = Color(0xFFD0A8B5),
-    surface = Color(0xFF211E24),
-    background = Color(0xFF151318),
+    primary = Color(0xFFD8B4FE),
+    onPrimary = Color(0xFF38204F),
+    primaryContainer = Color(0xFF553477),
+    onPrimaryContainer = Color(0xFFF1DFFF),
 
-    onPrimary = Color(0xFF362F45),
-    onSecondary = Color(0xFF392A30),
-    onSurface = Color(0xFFE9E1E9),
-    onBackground = Color(0xFFE9E1E9),
+    secondary = Color(0xFFA8DADC),
+    onSecondary = Color(0xFF123337),
+    secondaryContainer = Color(0xFF234A4E),
+    onSecondaryContainer = Color(0xFFC0F0F1),
 
-    surfaceVariant = Color(0xFF4A454D),
-    onSurfaceVariant = Color(0xFFCEC6CF)
+    background = Color(0xFF121318),
+    onBackground = Color(0xFFE7E1EA),
+
+    surface = Color(0xFF191A21),
+    onSurface = Color(0xFFE7E1EA),
+
+    surfaceVariant = Color(0xFF2B2D37),
+    onSurfaceVariant = Color(0xFFC9C1D0),
+
+    outline = Color(0xFF938B9B),
+
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6)
 )
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
@@ -69,7 +87,7 @@ class MainActivity : ComponentActivity() {
 
     var colorScheme = if (darkTheme) darkColors else lightColors
     MaterialTheme(
-        colorScheme = if (darkTheme) darkColors else lightColors,
+        colorScheme = colorScheme,
         content = content
     )
 }
@@ -92,9 +110,9 @@ class MainActivity : ComponentActivity() {
 @Composable private fun WelcomeScreen(onContinue: (String) -> Unit) {
     var name by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
-        Icon(Icons.Default.Favorite, null, tint = Lavender, modifier = Modifier.size(52.dp))
+        Icon(Icons.Default.Favorite, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(52.dp))
         Spacer(Modifier.height(24.dp))
-        Text("Better habits, together.", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Ink)
+        Text("Better habits, together.", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
         Spacer(Modifier.height(10.dp))
         Text("Keep the promises you make to yourself — with a little loving accountability from your person.", style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.height(34.dp))
@@ -108,7 +126,7 @@ class MainActivity : ComponentActivity() {
     var code by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(52.dp))
-        Icon(Icons.Default.PersonAdd, null, tint = Lavender, modifier = Modifier.size(48.dp))
+        Icon(Icons.Default.PersonAdd, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(18.dp))
         Text("Invite your accountability partner", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
@@ -117,7 +135,7 @@ class MainActivity : ComponentActivity() {
         if (state.inviteCode == null) {
             Button(onCreateInvite, Modifier.fillMaxWidth().height(52.dp)) { Text("Create a pairing code") }
         } else {
-            Card(colors = CardDefaults.cardColors(containerColor = Lilac), modifier = Modifier.fillMaxWidth()) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Send this to your partner", style = MaterialTheme.typography.labelLarge)
                     Text(state.inviteCode, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.ExtraBold, letterSpacing = 5.sp)
@@ -140,19 +158,19 @@ class MainActivity : ComponentActivity() {
     val partner = state.partner
     val myDone = state.habits.count { "${it.id}|${me.id}|${today()}" in state.completions }
     val partnerDone = partner?.let { person -> state.habits.count { "${it.id}|${person.id}|${today()}" in state.completions } } ?: 0
-    Scaffold(floatingActionButton = { FloatingActionButton({ addHabit = true }, containerColor = Lavender, contentColor = Color.White) { Icon(Icons.Default.Add, "Add habit") } }) { padding ->
+    Scaffold(floatingActionButton = { FloatingActionButton({ addHabit = true }, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) { Icon(Icons.Default.Add, "Add habit") } }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp), contentPadding = PaddingValues(vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item {
-                Text("Good morning, ${me.name}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
-                Text("${today().replace("-", " · ")}", color = Color(0xFF625B71))
+                Text("Good morning, ${me.name}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                Text("${today().replace("-", " · ")}", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = Lilac), modifier = Modifier.fillMaxWidth()) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Favorite, null, tint = Lavender)
+                        Icon(Icons.Default.Favorite, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) { Text("You & ${partner?.name ?: "your partner"}", fontWeight = FontWeight.Bold); Text("A shared place to show up") }
-                        Text("$myDone/${state.habits.count()}", fontWeight = FontWeight.Bold, color = Lavender)
+                        Text("$myDone/${state.habits.count()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
             }
@@ -162,7 +180,7 @@ class MainActivity : ComponentActivity() {
                 HabitCard(habit, me, partner, state.completions, onToggle)
             }
             if (partner != null) item {
-                Text("${partner.name} has checked in on $partnerDone habit${if (partnerDone == 1) "" else "s"} today.", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF625B71), modifier = Modifier.padding(bottom = 76.dp))
+                Text("${partner.name} has checked in on $partnerDone habit${if (partnerDone == 1) "" else "s"} today.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 76.dp))
             }
         }
     }
@@ -173,14 +191,14 @@ class MainActivity : ComponentActivity() {
     val mine = habit.ownerId == me.id
     val myChecked = "${habit.id}|${me.id}|${today()}" in completions
     val partnerChecked = partner?.let { "${habit.id}|${it.id}|${today()}" in completions } == true
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (myChecked) Color(0xFFF4EFFA) else MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (myChecked) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(habit.emoji, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(habit.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(if (mine) "Your habit" else "${habit.ownerName}’s habit", style = MaterialTheme.typography.bodySmall, color = Color(0xFF625B71))
-                partner?.let { Text("${it.name}: ${if (partnerChecked) "checked in ✓" else "not yet"}", style = MaterialTheme.typography.labelSmall, color = Lavender) }
+                Text(if (mine) "Your habit" else "${habit.ownerName}’s habit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                partner?.let { Text("${it.name}: ${if (partnerChecked) "checked in ✓" else "not yet"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
             }
             Checkbox(checked = myChecked, onCheckedChange = if (mine) { { _ -> onToggle(habit) } } else null)
         }
